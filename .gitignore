@@ -1,0 +1,31 @@
+# Python virtual environment
+venv/
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+
+# Streamlit cache and config
+.streamlit/
+
+# Database dumps or temp files
+*.sqlite3
+*.db
+*.sql
+
+# macOS system files
+.DS_Store
+
+# Jupyter Notebook checkpoints (if ever used)
+.ipynb_checkpoints/
+
+# Test output
+htmlcov/
+coverage.xml
+*.cover
+.cache/
