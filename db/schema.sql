@@ -73,3 +73,17 @@ CREATE TABLE history (
     mon_slug TEXT,
     evo_stage TEXT
 );
+
+-- Teams
+CREATE TABLE teams (
+    id SERIAL PRIMARY KEY,
+    team_name TEXT UNIQUE,
+    created_at TIMESTAMP
+);
+
+-- Team Members
+CREATE TABLE team_members (
+    team_id INT REFERENCES teams(id),
+    tuxemon_id INT REFERENCES monsters(id),
+    PRIMARY KEY (team_id, tuxemon_id)
+);

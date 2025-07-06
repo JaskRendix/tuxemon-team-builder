@@ -1,13 +1,15 @@
-import streamlit as st
-import pandas as pd
-from sqlalchemy import create_engine
-from dotenv import load_dotenv
 import os
 from datetime import datetime
+
+import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 load_dotenv()
 
 engine = create_engine(os.getenv("DB_URL"))
+
 
 @st.cache_data
 def load_monsters():
@@ -28,6 +30,7 @@ def load_monsters():
     """
     return pd.read_sql(query, engine)
 
+
 df = load_monsters()
 
 st.sidebar.title("Navigation")
@@ -36,17 +39,32 @@ page = st.sidebar.radio("Go to", ["Browse Tuxemon", "Build a Team"])
 if page == "Browse Tuxemon":
     st.title("Tuxemon Browser")
 
-    type_filter = st.sidebar.multiselect("Filter by Type", sorted({t for sublist in df["types"] for t in sublist}))
-    tag_filter = st.sidebar.multiselect("Filter by Tag", sorted({t for sublist in df["tags"] for t in sublist}))
-    terrain_filter = st.sidebar.multiselect("Filter by Terrain", sorted({t for sublist in df["terrains"] for t in sublist}))
+    type_filter = st.sidebar.multiselect(
+        "Filter by Type",
+        sorted({t for sublist in df["types"] for t in sublist if t is not None}),
+    )
+    tag_filter = st.sidebar.multiselect(
+        "Filter by Tag",
+        sorted({t for sublist in df["tags"] for t in sublist if t is not None}),
+    )
+    terrain_filter = st.sidebar.multiselect(
+        "Filter by Terrain",
+        sorted({t for sublist in df["terrains"] for t in sublist if t is not None}),
+    )
 
     filtered_df = df.copy()
     if type_filter:
-        filtered_df = filtered_df[filtered_df["types"].apply(lambda x: any(t in x for t in type_filter))]
+        filtered_df = filtered_df[
+            filtered_df["types"].apply(lambda x: any(t in x for t in type_filter))
+        ]
     if tag_filter:
-        filtered_df = filtered_df[filtered_df["tags"].apply(lambda x: any(t in x for t in tag_filter))]
+        filtered_df = filtered_df[
+            filtered_df["tags"].apply(lambda x: any(t in x for t in tag_filter))
+        ]
     if terrain_filter:
-        filtered_df = filtered_df[filtered_df["terrains"].apply(lambda x: any(t in x for t in terrain_filter))]
+        filtered_df = filtered_df[
+            filtered_df["terrains"].apply(lambda x: any(t in x for t in terrain_filter))
+        ]
 
     st.write(f"Showing {len(filtered_df)} of {len(df)} monsters")
 
@@ -59,14 +77,20 @@ if page == "Browse Tuxemon":
             st.markdown(f"**Weight:** {row['weight']} kg")
             st.markdown(f"**Catch Rate:** {row['catch_rate']}")
             st.markdown(f"**Types:** {', '.join(row['types'])}")
-            st.markdown(f"**Tags:** {', '.join(row['tags'])}")
-            st.markdown(f"**Terrains:** {', '.join(row['terrains'])}")
+            st.markdown(
+                f"**Tags:** {', '.join(t for t in row['tags'] if t is not None)}"
+            )
+            st.markdown(
+                f"**Terrains:** {', '.join(t for t in row['terrains'] if t is not None)}"
+            )
 
 elif page == "Build a Team":
     st.title("Tuxemon Team Builder")
 
     team_options = df["slug"].tolist()
-    selected_team = st.multiselect("Choose up to 6 Tuxemon", team_options, max_selections=6)
+    selected_team = st.multiselect(
+        "Choose up to 6 Tuxemon", team_options, max_selections=6
+    )
 
     if selected_team:
         team_df = df[df["slug"].isin(selected_team)]
@@ -87,20 +111,22 @@ elif page == "Build a Team":
             with engine.begin() as conn:
                 result = conn.execute(
                     "INSERT INTO teams (team_name, created_at) VALUES (%s, %s) RETURNING id",
-                    (team_name, datetime.now())
+                    (team_name, datetime.now()),
                 )
                 team_id = result.fetchone()[0]
                 for slug in selected_team:
                     monster_id = df[df["slug"] == slug]["id"].values[0]
                     conn.execute(
                         "INSERT INTO team_members (team_id, tuxemon_id) VALUES (%s, %s)",
-                        (team_id, monster_id)
+                        (team_id, monster_id),
                     )
             st.success(f"Team '{team_name}' saved!")
 
     # Load saved teams
     st.subheader("Load a Saved Team")
-    saved_teams = pd.read_sql("SELECT id, team_name FROM teams ORDER BY created_at DESC", engine)
+    saved_teams = pd.read_sql(
+        "SELECT id, team_name FROM teams ORDER BY created_at DESC", engine
+    )
     team_lookup = dict(zip(saved_teams["team_name"], saved_teams["id"]))
     selected_saved = st.selectbox("Select a team", [""] + list(team_lookup.keys()))
 
